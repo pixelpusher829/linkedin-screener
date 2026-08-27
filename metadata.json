@@ -1,0 +1,6 @@
+{
+  "name": "LinkedIn Job Qualifier & Pruner",
+  "description": "AI-powered tool to bulk qualify LinkedIn jobs against candidate specifications, prune low-fit roles, and generate context-grounded applicant answers from a candidate context doc.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

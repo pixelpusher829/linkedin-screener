@@ -1,0 +1,16 @@
+{
+	"buildCommand": "bun run build",
+	"outputDirectory": "dist",
+	"functions": {
+		"api/[...path].ts": {
+			"maxDuration": 60,
+			"includeFiles": "dist/server.cjs"
+		}
+	},
+	"rewrites": [
+		{
+			"source": "/((?!api/).*)",
+			"destination": "/index.html"
+		}
+	]
+}
