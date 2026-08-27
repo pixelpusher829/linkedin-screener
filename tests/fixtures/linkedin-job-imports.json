@@ -1,0 +1,20 @@
+[
+	{
+		"url": "https://www.linkedin.com/jobs/view/4399820187/",
+		"title": "Frontend Engineer, Product UI",
+		"company": "Micromart",
+		"location": "Waterloo, Ontario, Canada",
+		"workplaceType": "On-site",
+		"headerRaw": "Frontend Engineer, Product UI · Micromart · Waterloo, Ontario, Canada · Hybrid",
+		"descriptionRaw": "Hybrid work environment, with access to our Toronto office."
+	},
+	{
+		"url": "https://www.linkedin.com/jobs/view/test-remote/",
+		"title": "Senior Frontend Engineer",
+		"company": "Remote Test Company",
+		"location": "United States",
+		"workplaceType": "On-site",
+		"headerRaw": "Senior Frontend Engineer · Remote Test Company · United States · Remote",
+		"descriptionRaw": "Frontend engineering role."
+	}
+]
