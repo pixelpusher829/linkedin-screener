@@ -67,6 +67,17 @@ export function cleanLinkedInJobMeta(
 	return { title, company, location, workplaceType };
 }
 
+// LinkedIn often displays salary abbreviated (e.g. "$60K/yr - $80K/yr") rather than
+// spelled out with commas, so match both forms and normalize "K" shorthand to a full number.
+function parseSalaryValues(raw: string): number[] {
+	const values: number[] = [];
+	const kMatches = raw.matchAll(/(\d+(?:\.\d+)?)\s*k\b/gi);
+	for (const m of kMatches) values.push(Math.round(parseFloat(m[1]) * 1000));
+	const fullMatches = raw.replace(/,/g, "").match(/\d{5,7}/g) || [];
+	for (const m of fullMatches) values.push(Number(m));
+	return values;
+}
+
 // Deterministic, Comprehensive Local Heuristic Qualification Engine
 export function getScoreBands(criteria: any) {
 	const scoreBands = criteria.weighting?.scoreBands || {};
@@ -513,26 +524,25 @@ export function evaluateJobHeuristically(
 		| "Below Target"
 		| "Not Disclosed" = "Not Disclosed";
 	if (job.salaryRaw) {
-		const salaryDigits = (
-			job.salaryRaw.replace(/,/g, "").match(/\d{5,7}/g) || []
-		).map(Number);
+		const salaryDigits = parseSalaryValues(job.salaryRaw);
 		if (salaryDigits.length > 0) {
 			const maxSal = Math.max(...salaryDigits);
-			const minSal = Math.min(...salaryDigits);
 			const targetMin = criteria.minSalary || 100000;
+			// Every disclosed salary must land in exactly one bucket below — no gap
+			// between "near target" and "below target" that would silently skip scoring.
 			if (maxSal >= targetMin * 1.2) {
 				salaryFit = "Above Target";
 				addScore("Salary above floor", weights.salaryAbove);
 				keyPros.push(
 					`Compensation exceeds base target ($${maxSal.toLocaleString()} ${criteria.salaryCurrency || "CAD"})`,
 				);
-			} else if (maxSal >= targetMin || minSal >= targetMin * 0.9) {
+			} else if (maxSal >= targetMin * 0.9) {
 				salaryFit = "Within Target";
 				addScore("Salary near floor", weights.salaryWithin);
 				keyPros.push(
 					`Compensation aligns with base salary target ($${targetMin.toLocaleString()}+)`,
 				);
-			} else if (maxSal < targetMin * 0.85) {
+			} else {
 				salaryFit = "Below Target";
 				addScore("Salary below floor", weights.salaryBelow);
 				keyCons.push(

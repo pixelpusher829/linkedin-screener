@@ -14,7 +14,7 @@ import {
 	RefreshCw,
 	LogIn,
 } from "lucide-react";
-import { useAppContext } from "../context/AppContext";
+import { useAppContext } from "../../context/AppContext";
 
 export const Navbar: React.FC = () => {
 	const {

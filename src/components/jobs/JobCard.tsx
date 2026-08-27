@@ -15,7 +15,7 @@ import {
 	BookmarkCheck,
 	ShieldAlert,
 } from "lucide-react";
-import { JobPosting } from "../types";
+import { JobPosting } from "../../types";
 
 interface JobCardProps {
 	job: JobPosting;

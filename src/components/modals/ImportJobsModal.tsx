@@ -12,7 +12,7 @@ import {
 	Check,
 	ExternalLink,
 } from "lucide-react";
-import { JobPosting, WorkplaceType } from "../types";
+import { JobPosting, WorkplaceType } from "../../types";
 
 interface ImportJobsModalProps {
 	isOpen: boolean;

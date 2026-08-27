@@ -26,8 +26,8 @@ import {
 	ChevronDown,
 	Info,
 } from "lucide-react";
-import { UserCriteria, CustomSignal } from "../types";
-import { DEFAULT_CONTEXT_DOC } from "../data/defaultContextDoc";
+import { UserCriteria, CustomSignal } from "../../types";
+import { DEFAULT_CONTEXT_DOC } from "../../data/defaultContextDoc";
 
 // Small hover tooltip for explaining rubric fields inline without cluttering the UI.
 const InfoTooltip: React.FC<{ text: string; className?: string }> = ({

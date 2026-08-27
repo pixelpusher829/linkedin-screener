@@ -15,7 +15,7 @@ import {
 	BookmarkX,
 	Code2,
 } from "lucide-react";
-import { JobPosting } from "../types";
+import { JobPosting } from "../../types";
 
 interface LinkedInSyncModalProps {
 	isOpen: boolean;

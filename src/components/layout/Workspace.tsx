@@ -8,12 +8,12 @@ import {
 	RefreshCw,
 	Trash2,
 } from "lucide-react";
-import { JobPosting } from "../types";
-import { SortBy } from "../hooks/useJobFilters";
-import { JobCard } from "./JobCard";
-import { JobCompactRow } from "./JobCompactRow";
-import { BatchSummaryBanner } from "./BatchSummaryBanner";
-import { useAppContext } from "../context/AppContext";
+import { JobPosting } from "../../types";
+import { SortBy } from "../../hooks/useJobFilters";
+import { JobCard } from "../jobs/JobCard";
+import { JobCompactRow } from "../jobs/JobCompactRow";
+import { BatchSummaryBanner } from "../jobs/BatchSummaryBanner";
+import { useAppContext } from "../../context/AppContext";
 
 export const Workspace: React.FC = () => {
 	const {

@@ -7,7 +7,7 @@ import {
 	TrendingUp,
 	Percent,
 } from "lucide-react";
-import { BatchSummaryReport, JobPosting } from "../types";
+import { BatchSummaryReport, JobPosting } from "../../types";
 
 interface BatchSummaryBannerProps {
 	jobs: JobPosting[];

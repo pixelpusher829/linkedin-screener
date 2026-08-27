@@ -14,7 +14,7 @@ import {
 	Send,
 	CornerDownLeft,
 } from "lucide-react";
-import { JobPosting } from "../types";
+import { JobPosting } from "../../types";
 
 interface ApplicantAnswerModalProps {
 	isOpen: boolean;

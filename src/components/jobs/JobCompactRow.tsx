@@ -12,7 +12,7 @@ import {
 	ShieldAlert,
 	Sparkles,
 } from "lucide-react";
-import { JobPosting } from "../types";
+import { JobPosting } from "../../types";
 
 // Reduce a free-form salary string (e.g. "$120,000 - $150,000") to just its floor (e.g. "$120K+").
 const formatMinSalary = (raw: string): string => {

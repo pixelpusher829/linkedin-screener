@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Trash2, ShieldAlert, CheckCircle2, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
-import { JobPosting } from "../types";
+import { JobPosting } from "../../types";
 
 interface PruneConfirmModalProps {
 	isOpen: boolean;
