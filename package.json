@@ -14,6 +14,8 @@
 		"start": "node dist/server.cjs",
 		"test:workplace": "tsx tests/workplace-classification.test.ts",
 		"test:qualification": "tsx tests/qualification-scoring.test.ts",
+		"test:applicant-answer": "tsx tests/applicant-answer-format.test.ts",
+		"test:filters": "tsx tests/job-filter-sorting.test.ts",
 		"test:qualify-endpoint": "tsx tests/qualify-batch-endpoint.test.ts",
 		"preview": "vite preview",
 		"clean": "rm -rf dist server.js",

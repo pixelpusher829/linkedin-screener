@@ -44,8 +44,8 @@ const makeJob = (overrides: Record<string, any> = {}) => ({
 	);
 }
 
-// Missing-required-skill penalty scales with the number of missing skills and
-// respects the configured weight (not a hardcoded value).
+// Unmentioned required skills remain visible for review but never deduct points,
+// including when a legacy rubric still supplies the removed score weight.
 {
 	const result = evaluateJobHeuristically(
 		makeJob({ descriptionRaw: "No relevant stack mentioned here." }),
@@ -57,12 +57,13 @@ const makeJob = (overrides: Record<string, any> = {}) => ({
 			},
 		},
 	);
-	const row = result.scoreBreakdown.find(
-		(r: any) => r.label === "Missing required skills",
+	assert.deepEqual(result.missingSkills, ["React", "TypeScript"]);
+	assert.equal(
+		result.scoreBreakdown.some(
+			(row: any) => row.label === "Missing required skills",
+		),
+		false,
 	);
-	assert.ok(row, "expected a 'Missing required skills' score row");
-	// 2 required skills missing * -3 each = -6
-	assert.equal(row.points, -6);
 }
 
 // Custom scoring rules: a matching keyword applies its configured weight exactly once.
@@ -152,6 +153,57 @@ const makeJob = (overrides: Record<string, any> = {}) => ({
 		false,
 		"a strict keepAt threshold should prevent an ordinary job from being STRONG_KEEP",
 	);
+}
+
+// A job in another country needs manual confirmation that cross-border hiring
+// is possible, so it cannot be auto-kept even when every scoring signal is strong.
+{
+	const foreignRemote = evaluateJobHeuristically(
+		makeJob({ location: "United States", workplaceType: "Remote" }),
+		{
+			...baseCriteria,
+			weighting: {
+				...baseCriteria.weighting,
+				scoreBands: { pruneBelow: 40, keepAt: 50 },
+			},
+		},
+	);
+	assert.equal(foreignRemote.verdict, "CONSIDER");
+	assert.equal(
+		foreignRemote.scoreBreakdown.some((row: any) =>
+			row.label.startsWith("Location:"),
+		),
+		false,
+		"country location weights must not contribute to the score",
+	);
+
+	const californiaRemote = evaluateJobHeuristically(
+		makeJob({ location: "San Francisco, CA", workplaceType: "Remote" }),
+		{
+			...baseCriteria,
+			weighting: {
+				...baseCriteria.weighting,
+				scoreBands: { pruneBelow: 40, keepAt: 50 },
+			},
+		},
+	);
+	assert.equal(californiaRemote.verdict, "CONSIDER");
+
+	const reviewDisabled = evaluateJobHeuristically(
+		makeJob({ location: "United States", workplaceType: "Remote" }),
+		{
+			...baseCriteria,
+			locationPreferences: {
+				...baseCriteria.locationPreferences,
+				outsideHomeCountryConsider: false,
+			},
+			weighting: {
+				...baseCriteria.weighting,
+				scoreBands: { pruneBelow: 40, keepAt: 50 },
+			},
+		},
+	);
+	assert.equal(reviewDisabled.verdict, "STRONG_KEEP");
 }
 
 console.log("qualification-scoring.test.ts: all assertions passed");

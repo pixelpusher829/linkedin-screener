@@ -18,7 +18,6 @@ import {
 	RefreshCw,
 	Layers,
 	Briefcase,
-	Globe,
 	Home,
 	ShieldAlert,
 	Building,
@@ -198,30 +197,6 @@ const INDUSTRY_PRESETS = [
 	"Healthcare Tech",
 ];
 
-const REMOTE_REGION_PRESETS = [
-	{ id: "Canada", label: "Canada", description: "Hiring location is Canada" },
-	{
-		id: "United States",
-		label: "United States",
-		description: "Hiring location is the United States",
-	},
-	{
-		id: "North America",
-		label: "North America",
-		description: "Hiring location is within North American timezones",
-	},
-	{
-		id: "Worldwide",
-		label: "Worldwide",
-		description: "Hiring location is open worldwide",
-	},
-	{
-		id: "UK / Europe",
-		label: "UK / Europe",
-		description: "Hiring location is within the UK or Europe",
-	},
-];
-
 const SENIORITY_OPTIONS = [
 	"Unspecified / Open",
 	"Senior",
@@ -267,11 +242,6 @@ const SCORE_WEIGHT_FIELDS = [
 		label: "Bonus skill",
 		hint: "Points added per matched skill from your Nice-to-Have list, unless that skill has its own override weight.",
 	},
-	{
-		key: "missingRequiredSkill",
-		label: "Missing skill",
-		hint: "Penalty applied per required skill that isn't mentioned in the posting. Set to 0 to only reward matches without penalizing gaps.",
-	},
 ] as const;
 
 const WORK_TYPE_OPTIONS = ["Remote", "On-site", "Hybrid", "Contract"] as const;
@@ -288,7 +258,6 @@ const DEFAULT_SCORE_WEIGHTS: Record<string, number> = {
 	strictEducation: -20,
 	requiredSkill: 3,
 	niceSkill: 1,
-	missingRequiredSkill: -3,
 	junior: -25,
 	homeLocation: 20,
 	nonLocalOnsite: -40,
@@ -319,7 +288,6 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
 	const [newReqSkill, setNewReqSkill] = useState("");
 	const [newNiceSkill, setNewNiceSkill] = useState("");
 	const [newDealbreaker, setNewDealbreaker] = useState("");
-	const [newRemoteRegion, setNewRemoteRegion] = useState("");
 	const [newSignalName, setNewSignalName] = useState("");
 	const [newSignalKeywords, setNewSignalKeywords] = useState("");
 	const [newSignalWeight, setNewSignalWeight] = useState("10");
@@ -658,16 +626,6 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
 		return `Disqualification criteria rule: ${item}`;
 	};
 
-	const getRemoteRegionTooltip = (region: string): string => {
-		const found = REMOTE_REGION_PRESETS.find(
-			(r) =>
-				r.id.toLowerCase() === region.toLowerCase() ||
-				r.label.toLowerCase() === region.toLowerCase() ||
-				region.toLowerCase().includes(r.id.toLowerCase()),
-		);
-		return found ? found.description : `Remote hiring zone: ${region}`;
-	};
-
 	// Dealbreaker Helpers
 	const handleToggleDealbreaker = (db: string) => {
 		const isPresent = rubricForm.dealbreakers.some(
@@ -704,56 +662,6 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
 				dealbreakers: [...rubricForm.dealbreakers, newDealbreaker.trim()],
 			});
 			setNewDealbreaker("");
-		}
-	};
-
-	// Remote Regions Helpers
-	const handleToggleRemoteRegion = (region: string) => {
-		const current = rubricForm.locationPreferences.allowedRemoteRegions || [];
-		const normalizeRegion = (value: string) =>
-			value.toLowerCase().replace(/[^a-z0-9]/g, "");
-		const normalizedRegion = normalizeRegion(region);
-		const isPresent = current.some(
-			(r) =>
-				normalizeRegion(r) === normalizedRegion ||
-				normalizeRegion(r).includes(normalizedRegion) ||
-				normalizedRegion.includes(normalizeRegion(r)),
-		);
-		if (isPresent) {
-			setRubricForm({
-				...rubricForm,
-				locationPreferences: {
-					...rubricForm.locationPreferences,
-					allowedRemoteRegions: current.filter(
-						(r) =>
-							normalizeRegion(r) !== normalizedRegion &&
-							!normalizeRegion(r).includes(normalizedRegion) &&
-							!normalizedRegion.includes(normalizeRegion(r)),
-					),
-				},
-			});
-		} else {
-			setRubricForm({
-				...rubricForm,
-				locationPreferences: {
-					...rubricForm.locationPreferences,
-					allowedRemoteRegions: [...current, region],
-				},
-			});
-		}
-	};
-
-	const handleAddCustomRemoteRegion = () => {
-		const current = rubricForm.locationPreferences.allowedRemoteRegions || [];
-		if (newRemoteRegion.trim() && !current.includes(newRemoteRegion.trim())) {
-			setRubricForm({
-				...rubricForm,
-				locationPreferences: {
-					...rubricForm.locationPreferences,
-					allowedRemoteRegions: [...current, newRemoteRegion.trim()],
-				},
-			});
-			setNewRemoteRegion("");
 		}
 	};
 
@@ -1526,6 +1434,28 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
 											placeholder="e.g. Montreal, QC, Canada"
 											className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-xs font-medium"
 										/>
+										<label className="mt-2 flex items-center gap-2 cursor-pointer text-xs">
+											<input
+												type="checkbox"
+												checked={
+													rubricForm.locationPreferences
+														.outsideHomeCountryConsider !== false
+												}
+												onChange={(e) =>
+													setRubricForm({
+														...rubricForm,
+														locationPreferences: {
+															...rubricForm.locationPreferences,
+															outsideHomeCountryConsider: e.target.checked,
+														},
+													})
+												}
+												className="rounded border-slate-700 text-blue-600 focus:ring-blue-500"
+											/>
+											<span className="text-slate-300">
+												Outside home country requires review
+											</span>
+										</label>
 									</div>
 
 									{/* Dual-Zone Policy Visual Callout */}
@@ -1560,110 +1490,11 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
 									</div>
 								</div>
 
-								{/* Allowed Hiring Locations */}
-								<div className="space-y-2 pt-2 border-t border-slate-800/60">
-									<label className="font-semibold text-slate-200 flex items-center justify-between">
-										<span className="flex items-center gap-1.5">
-											<Globe className="w-3.5 h-3.5 text-blue-400" />
-											<span>Allowed Hiring Locations</span>
-											<InfoTooltip text="Applies only to remote roles outside your home location. Add any hiring region/country and set how many points it's worth." />
-										</span>
-										<span className="text-[11px] text-slate-500">
-											Set a score weight on each hiring region
-										</span>
-									</label>
-
-									<div className="flex flex-wrap gap-2">
-										{REMOTE_REGION_PRESETS.map((region) => {
-											const normalizeRegion = (value: string) =>
-												value.toLowerCase().replace(/[^a-z0-9]/g, "");
-											const isSelected = (
-												rubricForm.locationPreferences.allowedRemoteRegions ||
-												[]
-											).some(
-												(r) =>
-													normalizeRegion(r) === normalizeRegion(region.id) ||
-													normalizeRegion(r) ===
-														normalizeRegion(region.label) ||
-													normalizeRegion(r).includes(
-														normalizeRegion(region.label),
-													) ||
-													normalizeRegion(region.label).includes(
-														normalizeRegion(r),
-													),
-											);
-											return (
-												<button
-													key={region.id}
-													type="button"
-													title={region.description}
-													onClick={() => handleToggleRemoteRegion(region.id)}
-													className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1.5 ${
-														isSelected
-															? "bg-blue-500/20 text-blue-300 border-blue-500/40 font-semibold"
-															: "bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700"
-													}`}>
-													{isSelected && (
-														<Check className="w-3 h-3 text-blue-400 shrink-0" />
-													)}
-													<span>{region.label}</span>
-													{isSelected && (
-														<input
-															type="number"
-															min={-50}
-															max={50}
-															value={
-																rubricForm.weighting?.locationWeights?.[
-																	region.id
-																] ?? 0
-															}
-															onClick={(e) => e.stopPropagation()}
-															onChange={(e) =>
-																setRubricForm({
-																	...rubricForm,
-																	weighting: {
-																		...rubricForm.weighting,
-																		locationWeights: {
-																			...rubricForm.weighting?.locationWeights,
-																			[region.id]: Number(e.target.value) || 0,
-																		},
-																	},
-																})
-															}
-															className="w-8 h-5 px-0.5 rounded bg-blue-950/70 border border-blue-300/30 text-blue-100 text-center font-mono text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-400"
-															aria-label={`${region.label} score weight`}
-														/>
-													)}
-												</button>
-											);
-										})}
-									</div>
-
-									<div className="flex gap-2 pt-1">
-										<input
-											type="text"
-											value={newRemoteRegion}
-											onChange={(e) => setNewRemoteRegion(e.target.value)}
-											onKeyDown={(e) =>
-												e.key === "Enter" &&
-												(e.preventDefault(), handleAddCustomRemoteRegion())
-											}
-											placeholder="Add custom hiring location (e.g. Latin America, EMEA)..."
-											className="flex-1 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
-										/>
-										<button
-											onClick={handleAddCustomRemoteRegion}
-											className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1 cursor-pointer font-medium">
-											<Plus className="w-3.5 h-3.5" /> Add Location
-										</button>
-									</div>
-								</div>
-
 								<div className="space-y-2 pt-2 border-t border-slate-800/60">
 									<label className="font-semibold text-slate-200 flex items-center justify-between">
 										<span className="flex items-center gap-1.5">
 											<span>Job Type Preferences</span>
-											<InfoTooltip text="Weight applied based on the posting's work arrangement (Remote/On-site/Hybrid/Contract), on top of the home-location and remote-region rules above." />
+											<InfoTooltip text="Weight applied based on the posting's work arrangement: Remote, On-site, Hybrid, or Contract." />
 										</span>
 										<span className="text-[11px] text-slate-500">
 											Set an independent score weight for each work type
@@ -1705,7 +1536,7 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
 
 								{/* Work Auth & Sponsorship Checkboxes */}
 								<div className="pt-2 flex flex-wrap gap-4 border-t border-slate-800/60">
-									<label className="flex items-center gap-2 cursor-pointer bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
+									<label className="flex items-center gap-2 cursor-pointer text-xs">
 										<input
 											type="checkbox"
 											checked={
@@ -1722,7 +1553,7 @@ export const CandidateProfileModal: React.FC<CandidateProfileModalProps> = ({
 											}
 											className="rounded border-slate-700 text-blue-600 focus:ring-blue-500"
 										/>
-										<span className="text-slate-200 font-medium">
+										<span className="text-slate-300">
 											Candidate Requires Visa Sponsorship
 										</span>
 									</label>

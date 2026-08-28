@@ -25,7 +25,6 @@ export interface RubricWeighting {
 	skillWeights?: Record<string, number>;
 	titleWeights?: Record<string, number>;
 	seniorityWeights?: Record<string, number>;
-	locationWeights?: Record<string, number>;
 	workTypeWeights?: Record<string, number>;
 	/** Fully user-defined scoring rules, evaluated in addition to the built-in levers. */
 	customSignals?: CustomSignal[];
@@ -38,8 +37,6 @@ export interface RubricWeighting {
 export interface ScoreWeights {
 	base: number;
 	remote: number;
-	canada: number;
-	usRemote: number;
 	midLevel: number;
 	unspecifiedSeniority: number;
 	senior: number;
@@ -47,7 +44,6 @@ export interface ScoreWeights {
 	strictEducation: number;
 	requiredSkill: number;
 	niceSkill: number;
-	missingRequiredSkill: number;
 	junior: number;
 	homeLocation: number;
 	nonLocalOnsite: number;
@@ -68,6 +64,7 @@ export interface UserCriteria {
 	locationPreferences: {
 		homeLocation?: string;
 		allowHomeOnsiteHybrid?: boolean;
+		outsideHomeCountryConsider?: boolean;
 		remoteOnly: boolean;
 		allowedRemoteRegions?: string[];
 		allowedLocations: string[];
@@ -103,6 +100,8 @@ export interface JobAnalysis {
 		| "Overqualified"
 		| "Underqualified";
 	locationFit: "Matches Remote/Location" | "Location Mismatch" | "Unspecified";
+	isOutsideHomeCountry?: boolean;
+	requiresOutsideHomeCountryReview?: boolean;
 	tailoredPitch: string;
 	resumeHighlights: string[];
 	actionRecommendation: string;

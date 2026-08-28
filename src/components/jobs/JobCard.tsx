@@ -101,8 +101,27 @@ export const JobCard: React.FC<JobCardProps> = ({
 									<Building className="w-3.5 h-3.5 text-slate-500" />
 									{job.company}
 								</span>
-								<span className="flex items-center gap-1">
-									<MapPin className="w-3.5 h-3.5 text-slate-500" />
+								<span
+									className={`flex items-center gap-1 ${
+										analysis?.isOutsideHomeCountry &&
+										analysis.requiresOutsideHomeCountryReview
+											? "text-amber-300"
+											: ""
+									}`}
+									title={
+										analysis?.isOutsideHomeCountry &&
+										analysis.requiresOutsideHomeCountryReview
+											? "Outside home country"
+											: undefined
+									}>
+									<MapPin
+										className={`w-3.5 h-3.5 ${
+											analysis?.isOutsideHomeCountry &&
+											analysis.requiresOutsideHomeCountryReview
+												? "text-amber-400"
+												: "text-slate-500"
+										}`}
+									/>
 									{job.location} ({job.workplaceType})
 								</span>
 								{job.salaryRaw && (
@@ -236,11 +255,11 @@ export const JobCard: React.FC<JobCardProps> = ({
 								</div>
 							</div>
 
-							{/* Right: Missing Requirements */}
+							{/* Right: Skills Not Mentioned */}
 							<div className="p-3.5 space-y-2 flex flex-col justify-start">
-								<div className="flex items-center gap-1.5 text-xs font-semibold text-rose-400">
-									<X className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-									<span>Missing Requirements & Gaps</span>
+								<div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+									<X className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+									<span>Skills Not Mentioned</span>
 								</div>
 
 								<div className="flex flex-wrap items-center gap-1.5">
@@ -249,13 +268,13 @@ export const JobCard: React.FC<JobCardProps> = ({
 										analysis.missingSkills.map((s) => (
 											<span
 												key={s}
-												className="px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/20 text-xs font-medium">
+												className="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 text-xs font-medium">
 												{s}
 											</span>
 										))
 									) : (
 										<span className="text-xs text-emerald-400/90 flex items-center gap-1">
-											No critical stack gaps
+											All required skills are mentioned
 										</span>
 									)}
 								</div>

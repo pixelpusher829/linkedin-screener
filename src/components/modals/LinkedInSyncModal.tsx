@@ -75,7 +75,7 @@ export const LinkedInSyncModal: React.FC<LinkedInSyncModalProps> = ({
 	const headerText = clean(c.innerText || c.textContent);
 	const workplaceBadge = Array.from(c.querySelectorAll('*')).find(el => /^(remote|hybrid)$/i.test(clean(el.innerText || el.textContent)));
 	const workplaceLabel = workplaceBadge ? clean(workplaceBadge.innerText || workplaceBadge.textContent) : '';
-	const workplaceText = (title + ' ' + location + ' ' + workplaceLabel).toLowerCase();
+	const workplaceText = (headerText + ' ' + workplaceLabel).toLowerCase();
 
 	const isRemote = workplaceText.includes('remote');
 	const isHybrid = !isRemote && workplaceText.includes('hybrid');
@@ -86,7 +86,7 @@ export const LinkedInSyncModal: React.FC<LinkedInSyncModalProps> = ({
       title: title || 'LinkedIn Software Role',
       company: company,
 	location: isRemote && !/remote/i.test(normalizedLocation) ? normalizedLocation + ' (Remote)' : normalizedLocation,
-	headerRaw: [title, company, normalizedLocation, workplaceLabel].filter(Boolean).join(' · '),
+	headerRaw: headerText,
       workplaceType: isRemote ? 'Remote' : (isHybrid ? 'Hybrid' : 'On-site'),
       descriptionRaw: (title || 'Role') + ' at ' + company + '. Location: ' + location
     });

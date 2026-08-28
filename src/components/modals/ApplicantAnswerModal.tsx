@@ -109,6 +109,7 @@ export const ApplicantAnswerModal: React.FC<ApplicantAnswerModalProps> = ({
 					contextDoc,
 					targetJob: selectedJob,
 					tone,
+					generationId: crypto.randomUUID(),
 				}),
 			});
 

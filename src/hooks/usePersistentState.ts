@@ -32,11 +32,30 @@ export function normalizeTargetTitles(criteria: UserCriteria): UserCriteria {
 		]),
 	);
 
+	const weightingWithLegacy = criteria.weighting as
+		| (NonNullable<typeof criteria.weighting> & {
+				locationWeights?: Record<string, number>;
+				scoreWeights?: NonNullable<
+					typeof criteria.weighting
+				>["scoreWeights"] & {
+					missingRequiredSkill?: number;
+				};
+		  })
+		| undefined;
+	const {
+		locationWeights: _removedLocationWeights,
+		scoreWeights,
+		...weighting
+	} = weightingWithLegacy || {};
+	const {
+		missingRequiredSkill: _removedMissingRequiredSkill,
+		...cleanScoreWeights
+	} = scoreWeights || {};
 	return {
 		...criteria,
 		targetJobTitles,
 		weighting: criteria.weighting
-			? { ...criteria.weighting, titleWeights }
+			? { ...weighting, titleWeights, scoreWeights: cleanScoreWeights }
 			: criteria.weighting,
 	};
 }

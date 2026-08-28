@@ -13,6 +13,7 @@ import {
 	ExternalLink,
 } from "lucide-react";
 import { JobPosting, WorkplaceType } from "../../types";
+import { normalizeImportedJob } from "../../hooks/jobOperationUtils";
 
 interface ImportJobsModalProps {
 	isOpen: boolean;
@@ -108,31 +109,9 @@ export const ImportJobsModal: React.FC<ImportJobsModalProps> = ({
 			if (data.warning) setScrapeError(data.warning);
 			const newJobs: JobPosting[] = (data.results || []).map(
 				(item: any, idx: number) => ({
+					...normalizeImportedJob({ ...item, url: item.url || urls[idx] }, idx),
 					id: `job-url-${Date.now()}-${idx}`,
-					url: item.url || urls[idx] || "https://www.linkedin.com/jobs",
-					title: item.title || "Job Opportunity",
-					company: item.company || "Hiring Company",
-					location: item.location || "Remote",
-					headerRaw: item.headerRaw || item.headerText,
-					workplaceType: ["Remote", "Hybrid", "On-site"].includes(
-						item.workplaceType,
-					)
-						? (item.workplaceType as WorkplaceType)
-						: (item.headerRaw || item.headerText || "")
-									.toLowerCase()
-									.includes("remote")
-							? "Remote"
-							: (item.headerRaw || item.headerText || "")
-										.toLowerCase()
-										.includes("hybrid")
-								? "Hybrid"
-								: "Unknown",
-					salaryRaw: item.salaryRaw,
-					descriptionRaw: item.descriptionRaw || item.title,
 					source: "direct_link",
-					status: "to_qualify",
-					createdAt: new Date().toISOString(),
-					updatedAt: new Date().toISOString(),
 				}),
 			);
 
@@ -172,28 +151,8 @@ export const ImportJobsModal: React.FC<ImportJobsModalProps> = ({
 					: parsed.jobs || [parsed];
 				const directJobs: JobPosting[] = arrayData.map(
 					(j: any, idx: number) => ({
+						...normalizeImportedJob(j, idx),
 						id: `job-json-${Date.now()}-${idx}`,
-						url: j.url || "https://www.linkedin.com/jobs",
-						title: j.title || "Software Opportunity",
-						company: j.company || "Company",
-						location: j.location || "Remote",
-						headerRaw: j.headerRaw || j.headerText,
-						workplaceType:
-							(j.workplaceType as WorkplaceType) ||
-							(j.location?.toLowerCase().includes("remote")
-								? "Remote"
-								: j.location?.toLowerCase().includes("hybrid")
-									? "Hybrid"
-									: "Unknown"),
-						salaryRaw: j.salaryRaw,
-						descriptionRaw:
-							j.descriptionRaw ||
-							j.descriptionSummary ||
-							`${j.title} at ${j.company}. Location: ${j.location}`,
-						source: "linkedin_tracker",
-						status: "to_qualify",
-						createdAt: new Date().toISOString(),
-						updatedAt: new Date().toISOString(),
 					}),
 				);
 
@@ -226,21 +185,8 @@ export const ImportJobsModal: React.FC<ImportJobsModalProps> = ({
 			const data = await res.json();
 			const extractedJobs: JobPosting[] = (data.jobs || []).map(
 				(j: any, idx: number) => ({
+					...normalizeImportedJob(j, idx),
 					id: `job-tracker-${Date.now()}-${idx}`,
-					url: j.url || "https://www.linkedin.com/jobs",
-					title: j.title || "Software Opportunity",
-					company: j.company || "Company",
-					location: j.location || "Remote",
-					headerRaw: j.headerRaw || j.headerText,
-					workplaceType: (j.workplaceType as WorkplaceType) || "Remote",
-					salaryRaw: j.salaryRaw,
-					descriptionRaw:
-						j.descriptionSummary ||
-						`${j.title} at ${j.company}. Location: ${j.location}`,
-					source: "linkedin_tracker",
-					status: "to_qualify",
-					createdAt: new Date().toISOString(),
-					updatedAt: new Date().toISOString(),
 				}),
 			);
 
@@ -316,14 +262,16 @@ export const ImportJobsModal: React.FC<ImportJobsModalProps> = ({
     const locEl = c.querySelector('.entity-result__secondary-subtitle, .job-card-container__metadata-item, .artdeco-entity-lockup__caption, .job-card-container__metadata-wrapper');
     const location = locEl ? clean(locEl.innerText || locEl.textContent) : 'Remote';
 
-    const isRemote = (location + ' ' + title).toLowerCase().includes('remote');
-    const isHybrid = (location + ' ' + title).toLowerCase().includes('hybrid');
+	const headerText = clean(c.innerText || c.textContent);
+	const isRemote = headerText.toLowerCase().includes('remote');
+	const isHybrid = !isRemote && headerText.toLowerCase().includes('hybrid');
 
     extracted.push({
       url: 'https://www.linkedin.com/jobs/view/' + jobId + '/',
       title: title || 'LinkedIn Software Role',
       company: company,
       location: location,
+	  headerRaw: headerText,
       workplaceType: isRemote ? 'Remote' : (isHybrid ? 'Hybrid' : 'On-site'),
       descriptionRaw: (title || 'Role') + ' at ' + company + '. Location: ' + location
     });

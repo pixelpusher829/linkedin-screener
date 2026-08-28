@@ -78,6 +78,24 @@ function parseSalaryValues(raw: string): number[] {
 	return values;
 }
 
+function inferCountry(
+	location: string,
+): "Canada" | "United States" | undefined {
+	const normalized = location.toLowerCase();
+	if (
+		/\b(canada|ab|alberta|bc|british columbia|mb|manitoba|nb|new brunswick|nl|newfoundland|ns|nova scotia|nt|northwest territories|nu|nunavut|on|ontario|pe|prince edward island|qc|quebec|sk|saskatchewan|yt|yukon)\b/.test(
+			normalized,
+		)
+	)
+		return "Canada";
+	if (
+		/(?:^|,\s*)ca(?=\s*(?:,|\(|$))|\b(united states|u\.s\.|usa|alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/.test(
+			normalized,
+		)
+	)
+		return "United States";
+}
+
 // Deterministic, Comprehensive Local Heuristic Qualification Engine
 export function getScoreBands(criteria: any) {
 	const scoreBands = criteria.weighting?.scoreBands || {};
@@ -123,8 +141,6 @@ export function evaluateJobHeuristically(
 	const weights = {
 		base: 30,
 		remote: 0,
-		canada: 0,
-		usRemote: 0,
 		midLevel: 10,
 		unspecifiedSeniority: 8,
 		senior: 4,
@@ -132,7 +148,6 @@ export function evaluateJobHeuristically(
 		strictEducation: -20,
 		requiredSkill: 3,
 		niceSkill: 1,
-		missingRequiredSkill: -3,
 		junior: -25,
 		homeLocation: 20,
 		nonLocalOnsite: -40,
@@ -255,30 +270,23 @@ export function evaluateJobHeuristically(
 		| "Unspecified" = "Unspecified";
 	const isHomeLocation =
 		locLower.includes(homeCity) || (homeLoc && locLower.includes(homeLoc));
-	const isRemote =
-		workplaceLower.includes("remote") ||
-		locLower.includes("remote") ||
-		(job.headerRaw || "").toLowerCase().includes("remote");
-	const isHybrid =
-		!isRemote &&
-		(workplaceLower.includes("hybrid") ||
-			locLower.includes("hybrid") ||
-			(job.headerRaw || "").toLowerCase().includes("hybrid"));
+	const headerLower = (job.headerRaw || "").toLowerCase();
+	const isRemote = headerLower.includes("remote");
+	const isHybrid = !isRemote && headerLower.includes("hybrid");
 	const isOnSite =
 		!isRemote &&
 		!isHybrid &&
-		(workplaceLower.includes("on-site") ||
-			workplaceLower.includes("onsite") ||
-			workplaceLower.includes("in-person") ||
-			fullText.includes(" on-site") ||
-			fullText.includes(" onsite") ||
-			fullText.includes(" in-person"));
+		(headerLower.includes("on-site") ||
+			headerLower.includes("onsite") ||
+			headerLower.includes("in-person"));
 
-	const locationWeights = weighting.locationWeights || {};
 	const workTypeWeights = weighting.workTypeWeights || {};
-	const matchedLocation = Object.keys(locationWeights).find((location) =>
-		locLower.includes(location.toLowerCase()),
-	);
+	const homeCountry = inferCountry(homeLoc);
+	const jobCountry = inferCountry(locLower);
+	const isOutsideHomeCountry =
+		Boolean(homeCountry && jobCountry) && homeCountry !== jobCountry;
+	const requiresOutsideHomeCountryReview =
+		criteria.locationPreferences?.outsideHomeCountryConsider !== false;
 	const isContract =
 		fullText.includes("contract") ||
 		fullText.includes("1099") ||
@@ -294,38 +302,6 @@ export function evaluateJobHeuristically(
 		addScore("Work type: remote", workTypeWeights.Remote ?? weights.remote);
 		keyPros.push("100% Remote flexibility matching remote preference");
 		locationFit = "Matches Remote/Location";
-
-		if (
-			locLower.includes("canada") ||
-			locLower.includes("on (remote)") ||
-			locLower.includes("qc (remote)") ||
-			locLower.includes("bc (remote)") ||
-			locLower.includes("ottawa") ||
-			locLower.includes("toronto") ||
-			locLower.includes("waterloo")
-		) {
-			addScore(
-				"Location: Canada",
-				locationWeights[matchedLocation || "Canada"] ??
-					locationWeights["Canada Remote"] ??
-					weights.canada,
-			);
-			keyPros.push("Direct Canadian domestic hiring jurisdiction");
-		} else if (
-			locLower.includes("united states") ||
-			locLower.includes("usa") ||
-			locLower.includes("us (remote)")
-		) {
-			addScore(
-				"Location: United States",
-				locationWeights[matchedLocation || "United States"] ??
-					locationWeights["US Remote (EOR/Contract)"] ??
-					weights.usRemote,
-			);
-			keyPros.push(
-				"US-based remote role (accessible via Canadian contractor/EOR or international remote)",
-			);
-		}
 	} else if (isHybrid || isOnSite) {
 		locationFit = "Location Mismatch";
 		dealbreakerTriggers.push(
@@ -340,19 +316,6 @@ export function evaluateJobHeuristically(
 		);
 	}
 
-	if (
-		matchedLocation &&
-		isRemote &&
-		!locLower.includes("canada") &&
-		!locLower.includes("united states") &&
-		!locLower.includes("usa") &&
-		!locLower.includes("us (remote)")
-	) {
-		addScore(
-			`Location: ${matchedLocation}`,
-			locationWeights[matchedLocation] ?? 0,
-		);
-	}
 	if (isRemote && isHomeLocation)
 		addScore("Work type: remote", workTypeWeights.Remote ?? weights.remote);
 	if (isHybrid) addScore("Work type: hybrid", workTypeWeights.Hybrid ?? 0);
@@ -389,12 +352,8 @@ export function evaluateJobHeuristically(
 		);
 	}
 	if (missingSkills.length > 0) {
-		addScore(
-			"Missing required skills",
-			Math.max(-18, missingSkills.length * weights.missingRequiredSkill),
-		);
 		keyCons.push(
-			`Posting doesn't mention required skills: ${missingSkills.slice(0, 4).join(", ")}`,
+			`Posting doesn't mention these required skills: ${missingSkills.slice(0, 4).join(", ")}`,
 		);
 	}
 
@@ -571,7 +530,10 @@ export function evaluateJobHeuristically(
 	let verdict: "STRONG_KEEP" | "CONSIDER" | "REMOVE" = "CONSIDER";
 	if (dealbreakerTriggers.length > 0 || score < scoreBands.pruneBelow) {
 		verdict = "REMOVE";
-	} else if (score >= scoreBands.keepAt) {
+	} else if (
+		(!requiresOutsideHomeCountryReview || !isOutsideHomeCountry) &&
+		score >= scoreBands.keepAt
+	) {
 		verdict = "STRONG_KEEP";
 	} else {
 		verdict = "CONSIDER";
@@ -629,6 +591,8 @@ export function evaluateJobHeuristically(
 		salaryFit,
 		experienceFit,
 		locationFit,
+		isOutsideHomeCountry,
+		requiresOutsideHomeCountryReview,
 		tailoredPitch,
 		resumeHighlights:
 			matchedSkills.length > 0

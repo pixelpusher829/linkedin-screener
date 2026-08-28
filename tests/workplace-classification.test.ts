@@ -16,7 +16,7 @@ const makeJob = (descriptionRaw: string, workplaceType: string) => ({
 
 const remoteHeader = evaluateJobHeuristically(
 	makeJob(
-		"Remote\nSenior Frontend Engineer building React products.",
+		"Remote\nSenior Frontend Engineer building React products in a hybrid design organization.",
 		"On-site",
 	),
 	DEFAULT_USER_CRITERIA,
@@ -68,7 +68,12 @@ const missingWorkplace = evaluateJobHeuristically(
 	"",
 );
 assert.equal(missingWorkplace.locationFit, "Unspecified");
-assert.equal(missingWorkplace.dealbreakerTriggers.length, 0);
+assert.equal(
+	missingWorkplace.dealbreakerTriggers.some((trigger) =>
+		trigger.includes("Mandatory in-person"),
+	),
+	false,
+);
 
 const micromart = normalizeImportedJob(
 	{

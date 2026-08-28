@@ -59,6 +59,10 @@ const bookmarkletImport = runImportTrace("Bookmarklet import", {
 		"Frontend role imported from the authenticated LinkedIn card.",
 });
 assert.equal(bookmarkletImport.importedJob.workplaceType, "Remote");
+assert.equal(
+	bookmarkletImport.importedJob.headerRaw,
+	"Senior UI Engineer · Saved Jobs Company · United States · Remote",
+);
 assert.equal(bookmarkletImport.analysis.locationFit, "Matches Remote/Location");
 assert.equal(
 	bookmarkletImport.analysis.dealbreakerTriggers.some((trigger) =>

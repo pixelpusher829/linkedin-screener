@@ -5,15 +5,41 @@ import { fetchJobDescriptionForAnswer } from "../services/scraping.service";
 
 export const applicantAnswerRouter = express.Router();
 
+export function normalizeApplicantAnswer(answer: string): string {
+	return answer
+		.replace(/\*\*|__|`/g, "")
+		.replace(/^[\s>*#-]+|^\d+[.)]\s*/gm, "")
+		.replace(/[\u2013\u2014]/g, ",")
+		.replace(/\s*\n+\s*/g, " ")
+		.replace(/\s+([,.;:!?])/g, "$1")
+		.replace(/\s{2,}/g, " ")
+		.trim();
+}
+
+function fallbackVariation(generationId: string | undefined, question: string) {
+	const seed = generationId || question;
+	const variants = [
+		"Drawing on my recent experience,",
+		"The most relevant part of my background is",
+		"From a practical delivery perspective,",
+	];
+	const index =
+		[...seed].reduce((total, character) => total + character.charCodeAt(0), 0) %
+		variants.length;
+	return variants[index];
+}
+
 // Endpoint 5: Generate Applicant Answer based on Context Doc
 applicantAnswerRouter.post("/generate-applicant-answer", async (req, res) => {
 	try {
-		const { question, contextDoc, targetJob, tone } = req.body as {
-			question: string;
-			contextDoc: string;
-			targetJob?: any;
-			tone?: "standard" | "concise" | "storytelling" | "direct";
-		};
+		const { question, contextDoc, targetJob, tone, generationId } =
+			req.body as {
+				question: string;
+				contextDoc: string;
+				targetJob?: any;
+				tone?: "standard" | "concise" | "storytelling" | "direct";
+				generationId?: string;
+			};
 
 		if (!question || !question.trim()) {
 			return res
@@ -35,13 +61,13 @@ applicantAnswerRouter.post("/generate-applicant-answer", async (req, res) => {
 		}
 
 		let toneInstruction =
-			"Standard tone: Engaging, authentic, professional, and well-structured in 2-3 focused paragraphs.";
+			"Standard tone: Engaging, authentic, professional, and well-structured in one focused paragraph.";
 		if (tone === "concise") {
 			toneInstruction =
-				"Concise tone: Extremely crisp, direct, and under 120 words or 3 short impactful bullets.";
+				"Concise tone: Extremely crisp, direct, and under 120 words in one paragraph.";
 		} else if (tone === "storytelling") {
 			toneInstruction =
-				"In-depth STAR method (Situation, Task, Action, Result): Provide a vivid, structured story demonstrating real-world problem solving, measurable impact, and craftsmanship.";
+				"Storytelling tone: Tell a vivid, cohesive STAR story in one paragraph demonstrating real-world problem solving, measurable impact, and craftsmanship.";
 		} else if (tone === "direct") {
 			toneInstruction =
 				"Direct & factual: Straight to the point, clear answers to logistics, salary, location, tech stack, or background.";
@@ -89,13 +115,15 @@ ${(contextDoc || "").slice(0, 18000)}
 TONE / FORMAT DIRECTIVE:
 ${toneInstruction}
 
+GENERATION ATTEMPT: ${generationId || "unspecified"}. Write a fresh response for this attempt. Address the application question above specifically; do not reuse a stock answer from another question.
+
 STRICT GUIDELINES:
 1. Ground every claim strictly in the Applicant Context Doc. Use the real companies (Technology Evaluation Centers / TEC, Crux Digital, Johannesburg Art School), real projects (Lumina Estates, Delicimo, Prospera), real frameworks (Svelte, SvelteKit, React, TypeScript, Next.js, Tailwind, GSAP), and real case studies (Design System overhaul, Legacy CRM modernization into React + shadcn/ui, AI automated image pipeline).
 2. Never invent fake companies or unverifiable degrees.
 3. If asked about salary, refer to the target range: $100,000 – $120,000 CAD base.
 4. If asked about location / work authorization, state clearly: Canadian citizen/resident based in Montreal, QC, open to remote North American roles that hire Canadian residents without requiring US citizenship/clearance.
 5. If asked about why leaving: Explain the temporary layoff due to corporate financial difficulties at previous company, pivoting towards greater craftsmanship and technical growth.
-6. Return a clean, ready-to-paste answer formatted with markdown paragraphs or bullet points where appropriate. Do NOT include meta-commentary like "Here is your answer:".`;
+6. Return a clean, ready-to-paste plain-text answer as exactly one paragraph. Do not use Markdown, headings, bullets, numbered lists, asterisks, or em dashes. Do NOT include meta-commentary like "Here is your answer:".`;
 
 				const candidateModels = [
 					"gemini-2.5-flash",
@@ -108,9 +136,12 @@ STRICT GUIDELINES:
 						const response = await ai.models.generateContent({
 							model: modelName,
 							contents: prompt,
+							config: { temperature: 0.85 },
 						});
 						if (response.text) {
-							return res.json({ answer: response.text });
+							return res.json({
+								answer: normalizeApplicantAnswer(response.text),
+							});
 						}
 					} catch (e) {}
 				}
@@ -124,6 +155,7 @@ STRICT GUIDELINES:
 
 		// Context-grounded first-person response template
 		const qLower = question.toLowerCase();
+		const questionLead = `Regarding "${question.trim()}", ${fallbackVariation(generationId, question)}`;
 		let generatedAnswer = "";
 
 		if (
@@ -131,7 +163,7 @@ STRICT GUIDELINES:
 			qLower.includes("interest") ||
 			qLower.includes("excited")
 		) {
-			generatedAnswer = `Throughout my 8+ years as a Senior Frontend Developer and Design Engineer, I have focused on bridging high-fidelity UI/UX design with robust, enterprise-scale engineering. What particularly excites me about ${targetJob?.company || "your team"} and the ${targetJob?.title || "role"} is the dedication to product craftsmanship and building snappy, user-centric web applications.
+			generatedAnswer = `${questionLead} throughout my 8+ years as a Senior Frontend Developer and Design Engineer, I have focused on bridging high-fidelity UI/UX design with robust, enterprise-scale engineering. What particularly excites me about ${targetJob?.company || "your team"} and the ${targetJob?.title || "role"} is the dedication to product craftsmanship and building snappy, user-centric web applications.
 
 At Technology Evaluation Centers (TEC), I led our multi-brand frontend architecture and design system overhaul—migrating fragmented codebases into modern TypeScript, React, and Tailwind CSS while reducing client load times by 40%. I thrive in environments where engineering standards, component modularity, and micro-interactions directly elevate the end-user experience.
 
@@ -141,7 +173,7 @@ I am eager to bring my background in design systems, performance optimization, a
 			qLower.includes("compensation") ||
 			qLower.includes("rate")
 		) {
-			generatedAnswer = `My target base compensation for this role is $100,000 – $120,000 CAD (or equivalent USD), commensurate with the seniority, scope of responsibilities, and total benefits package. I am open to discussing the complete compensation structure based on mutual fit.`;
+			generatedAnswer = `${questionLead} my target base compensation for this role is $100,000 – $120,000 CAD (or equivalent USD), commensurate with the seniority, scope of responsibilities, and total benefits package. I am open to discussing the complete compensation structure based on mutual fit.`;
 		} else if (
 			qLower.includes("location") ||
 			qLower.includes("remote") ||
@@ -149,9 +181,9 @@ I am eager to bring my background in design systems, performance optimization, a
 			qLower.includes("citizen") ||
 			qLower.includes("visa")
 		) {
-			generatedAnswer = `I am based in Montreal, QC, Canada, and work seamlessly in fully remote North American engineering teams across Eastern and Pacific time zones. I am a Canadian citizen and authorized to work domestically in Canada as well as for US companies via Canadian entities, Employer of Record (EOR), or international contractor arrangements without requiring domestic US visa sponsorship.`;
+			generatedAnswer = `${questionLead} I am based in Montreal, QC, Canada, and work seamlessly in fully remote North American engineering teams across Eastern and Pacific time zones. I am a Canadian citizen and authorized to work domestically in Canada as well as for US companies via Canadian entities, Employer of Record (EOR), or international contractor arrangements without requiring domestic US visa sponsorship.`;
 		} else {
-			generatedAnswer = `In my recent role as Senior Frontend Developer at Technology Evaluation Centers (TEC), I spearheaded key architecture modernization initiatives—including overhauling our legacy enterprise tools into modular React + TypeScript applications and building accessible, tokenized design systems.
+			generatedAnswer = `${questionLead} in my recent role as Senior Frontend Developer at Technology Evaluation Centers (TEC), I spearheaded key architecture modernization initiatives—including overhauling our legacy enterprise tools into modular React + TypeScript applications and building accessible, tokenized design systems.
 
 Key highlights from my experience that directly apply:
 • **Design System & Component Architecture**: Established multi-brand component libraries with strict accessibility (WCAG 2.1 AA) and automated visual regression testing.
@@ -161,7 +193,7 @@ Key highlights from my experience that directly apply:
 I would love to bring this combination of technical rigor and product design sensibility to the ${targetJob?.title || "team"} at ${targetJob?.company || "your company"}.`;
 		}
 
-		res.json({ answer: generatedAnswer });
+		res.json({ answer: normalizeApplicantAnswer(generatedAnswer) });
 	} catch (error: any) {
 		console.error("Error in /api/generate-applicant-answer:", error);
 		res

@@ -11,6 +11,37 @@ export type ActiveFilter =
 	| "applied";
 export type SortBy = "score" | "recent" | "company";
 
+const verdictRank = (job: JobPosting) => {
+	if (job.analysis?.verdict === "STRONG_KEEP") return 0;
+	if (job.analysis?.verdict === "CONSIDER") return 1;
+	if (job.analysis?.verdict === "REMOVE") return 2;
+	return 3;
+};
+
+export function compareJobs(
+	a: JobPosting,
+	b: JobPosting,
+	sortBy: SortBy,
+	groupByVerdict: boolean,
+) {
+	if (groupByVerdict) {
+		const verdictDifference = verdictRank(a) - verdictRank(b);
+		if (verdictDifference !== 0) return verdictDifference;
+	}
+	if (sortBy === "score")
+		return (b.analysis?.score || 0) - (a.analysis?.score || 0);
+	if (sortBy === "company") return a.company.localeCompare(b.company);
+	return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+}
+
+export function sortJobs(
+	jobs: JobPosting[],
+	sortBy: SortBy,
+	groupByVerdict: boolean,
+) {
+	return [...jobs].sort((a, b) => compareJobs(a, b, sortBy, groupByVerdict));
+}
+
 export function useJobFilters(jobs: JobPosting[]) {
 	const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
 	const [searchQuery, setSearchQuery] = useState("");
@@ -52,14 +83,14 @@ export function useJobFilters(jobs: JobPosting[]) {
 						)
 					);
 				})
-				.sort((a, b) => {
-					if (sortBy === "score")
-						return (b.analysis?.score || 0) - (a.analysis?.score || 0);
-					if (sortBy === "company") return a.company.localeCompare(b.company);
-					return (
-						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-					);
-				}),
+				.sort((a, b) =>
+					compareJobs(
+						a,
+						b,
+						sortBy,
+						activeFilter === "all" || activeFilter === "keep",
+					),
+				),
 		[jobs, activeFilter, searchQuery, sortBy],
 	);
 

@@ -164,8 +164,27 @@ export const JobCompactRow: React.FC<JobCompactRowProps> = ({
 
 				{/* 4. Location */}
 				<td className="py-2.5 px-3 align-middle text-slate-300 hidden md:table-cell">
-					<div className="flex items-center gap-1 text-[11px] text-slate-400 truncate max-w-[140px]">
-						<MapPin className="w-3 h-3 text-slate-500 shrink-0" />
+					<div
+						className={`flex items-center gap-1 text-[11px] truncate max-w-[140px] ${
+							analysis?.isOutsideHomeCountry &&
+							analysis.requiresOutsideHomeCountryReview
+								? "text-amber-300"
+								: "text-slate-400"
+						}`}
+						title={
+							analysis?.isOutsideHomeCountry &&
+							analysis.requiresOutsideHomeCountryReview
+								? "Outside home country"
+								: job.location
+						}>
+						<MapPin
+							className={`w-3 h-3 shrink-0 ${
+								analysis?.isOutsideHomeCountry &&
+								analysis.requiresOutsideHomeCountryReview
+									? "text-amber-400"
+									: "text-slate-500"
+							}`}
+						/>
 						<span className="truncate" title={job.location}>
 							{job.location}
 						</span>
@@ -353,12 +372,12 @@ export const JobCompactRow: React.FC<JobCompactRowProps> = ({
 											</div>
 										</div>
 
-										{/* Missing Skills */}
-										<div className="p-3 rounded-lg bg-rose-950/20 border border-rose-900/30 space-y-1.5">
-											<div className="text-xs font-semibold text-rose-400 flex items-center gap-1.5">
-												<X className="w-3.5 h-3.5 text-rose-400" />
+										{/* Skills Not Mentioned */}
+										<div className="p-3 rounded-lg bg-amber-950/20 border border-amber-900/30 space-y-1.5">
+											<div className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+												<X className="w-3.5 h-3.5 text-amber-400" />
 												<span>
-													Missing Requirements & Gaps (
+													Skills Not Mentioned (
 													{analysis.missingSkills?.length || 0})
 												</span>
 											</div>
@@ -368,13 +387,13 @@ export const JobCompactRow: React.FC<JobCompactRowProps> = ({
 													analysis.missingSkills.map((s) => (
 														<span
 															key={s}
-															className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 text-[11px]">
+															className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[11px]">
 															{s}
 														</span>
 													))
 												) : (
 													<span className="text-emerald-400 text-[11px]">
-														No major skill deficits
+														All required skills are mentioned
 													</span>
 												)}
 											</div>
